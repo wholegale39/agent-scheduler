@@ -1,0 +1,20 @@
+# Agent Task Scheduler config
+db_path: data/scheduler.db
+tasks_dir: tasks
+api_host: 0.0.0.0
+api_port: 8767
+log_level: INFO
+
+# Default LLM config (for prompt-type tasks without explicit llm config)
+default_llm:
+  provider: deepseek
+  model: deepseek-chat
+  api_key_env: LLM_API_KEY
+  temperature: 0.7
+  max_tokens: 8192
+
+# Alert settings — send notification after N consecutive failures
+alert_on_failure_after: 3
+alert_deliver:
+  - platform: stdout
+    target: console

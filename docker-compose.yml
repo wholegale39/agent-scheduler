@@ -1,0 +1,23 @@
+services:
+  agent-scheduler:
+    build: .
+    container_name: agent-scheduler
+    restart: unless-stopped
+    ports:
+      - "8767:8767"
+    volumes:
+      - ./tasks:/app/tasks:ro
+      - ./config.yaml:/app/config.yaml:ro
+      - ./data:/app/data
+      - /opt/data/scripts:/opt/data/scripts:ro  # For script tasks (optional)
+    environment:
+      - TZ=Asia/Shanghai
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - LLM_MODEL=${LLM_MODEL:-deepseek-chat}
+      - LLM_PROVIDER=${LLM_PROVIDER:-deepseek}
+      - LLM_BASE_URL=${LLM_BASE_URL:-}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

@@ -1,0 +1,116 @@
+# Example: Hermes cron jobs migrated to Agent Task Scheduler
+# These demonstrate the dependency chain pattern.
+
+# ── Daily market summary (runs at 18:00 on weekdays) ─────
+- name: global-market-summary
+  description: "Generate global market closing summary (Sina + Yahoo + Ant API)"
+  type: prompt
+  schedule: "0 18 * * 1-5"
+  timezone: Asia/Shanghai
+  prompt: |
+    生成「全球股市收盘汇总」，按以下格式：
+
+    列名=指数/收盘/日涨跌/YTD，无emoji图标，无粗体
+    紧凑对齐不换行。恒生科技简称恒科，恒生简称恒指。
+    包含A股(上证/深成/沪深300/科创50/北证50)、港股(恒指/恒科)、
+    亚太其他(日经/韩国/印度)、美股(道指/标普/纳指+日期)、
+    欧洲(DAX/CAC/富时)、外汇(USD/CNY/EUR/USD/USD/JPY)
+
+    先用Sina Finance获取A股数据，Yahoo Finance获取港股和亚太数据，
+    蚂蚁金融数据API获取美股和欧洲数据。
+  llm:
+    provider: deepseek
+    model: deepseek-chat
+    system_prompt: "You are a financial data analyst. Use web_search and API tools to fetch current market data. Return results in clean text format with emoji indentation."
+  retry:
+    max_attempts: 2
+    delay_seconds: 60
+  deliver:
+    - platform: stdout
+      target: console
+
+
+# ── Market chart generation (runs after summary) ──────────
+- name: gen-market-chart
+  description: "Generate market chart image from closing data"
+  type: script
+  schedule: "5 18 * * 1-5"    # 5 min after summary
+  timezone: Asia/Shanghai
+  depends_on:
+    - global-market-summary
+  script: "/opt/data/scripts/gen_market_chart.sh"
+  timeout_seconds: 120
+  retry:
+    max_attempts: 1
+  deliver:
+    - platform: stdout
+      target: console
+
+
+# ── Holdings summary (runs after chart) ───────────────────
+- name: holdings-summary
+  description: "Daily holdings tracking report"
+  type: prompt
+  schedule: "35 18 * * 1-5"    # 30 min after summary (after chart done)
+  timezone: Asia/Shanghai
+  depends_on:
+    - gen-market-chart
+  prompt: |
+    生成「持仓汇总」，查询以下标的的今日收盘价和涨跌幅：
+
+    核心ETF: 513050(中概互联) 512690(酒ETF) 159915(创业板) 159542(生物医药) 520990(港股红利)
+    补充ETF: 513230(安踏/恒生消费) 159570(中证生物药)
+    个股: 华润置地 中海油 亿联网络 宁波银行 江苏银行 沪农商行 羚锐制药
+
+    用蚂蚁金融数据API获取最新收盘价和日涨跌幅。
+  llm:
+    provider: deepseek
+    model: deepseek-chat
+    system_prompt: "You are a portfolio tracking assistant. Query financial data APIs for current prices. Format output compactly with ▲▼ emoji for gains/losses."
+  retry:
+    max_attempts: 2
+    delay_seconds: 30
+
+
+# ── DeepSeek balance watchdog ────────────────────────────
+- name: deepseek-balance-check
+  description: "Check DeepSeek API balance daily"
+  type: script
+  schedule: "0 18 * * *"
+  timezone: Asia/Shanghai
+  script: "/opt/data/scripts/deepseek_balance_watchdog.sh"
+  timeout_seconds: 30
+  retry:
+    max_attempts: 2
+
+
+# ── Mihomo proxy refresh ─────────────────────────────────
+- name: mihomo-refresh
+  description: "Refresh Mihomo proxy subscription daily"
+  type: script
+  schedule: "0 23 * * *"
+  timezone: Asia/Shanghai
+  script: "/opt/data/scripts/refresh_mihomo.sh"
+  timeout_seconds: 60
+
+
+# ── Daily AI news briefing ────────────────────────────────
+- name: daily-ai-news
+  description: "Generate daily AI news briefing from multiple sources"
+  type: prompt
+  schedule: "0 19 * * *"
+  timezone: Asia/Shanghai
+  prompt: |
+    生成每日AI资讯简报。
+    时间范围：今天北京时间00:00-当前时间。
+    数据源：arXiv cs.AI/cs.LG/cs.CL 最新论文，知乎热榜AI相关，
+    X/Twitter AI社区热门帖子，博客RSS更新。
+    提炼3-5条最值得关注的AI新闻。
+  llm:
+    provider: deepseek
+    model: deepseek-chat
+    max_tokens: 4096
+    temperature: 0.5
+  retry:
+    max_attempts: 2
+    delay_seconds: 30
