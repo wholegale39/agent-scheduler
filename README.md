@@ -1,5 +1,8 @@
 # Agent Task Scheduler · Agent 任务调度器
 
+![License](https://img.shields.io/badge/license-MIT-green) ![Python](https://img.shields.io/badge/python-3.10%2B-blue) ![GitHub stars](https://img.shields.io/github/stars/wholegale39/agent-scheduler)
+
+
 轻量级任务调度器——比 cron 更聪明，专为 Agent 任务设计。任务用自然语言 prompt 定义，支持依赖链编排、失败重试、多平台投递。
 
 ## 为什么做这个？
