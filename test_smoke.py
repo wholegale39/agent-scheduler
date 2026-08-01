@@ -3,10 +3,10 @@ import sys
 import os
 import tempfile
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from models import TaskDef, TaskType, DeliveryTarget
-from scheduler import AgentScheduler, parse_schedule
+from src.models import TaskDef, TaskType, DeliveryTarget
+from src.scheduler import AgentScheduler, parse_schedule
 
 
 def test_parse_schedule():
