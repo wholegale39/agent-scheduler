@@ -1,7 +1,6 @@
 # Python
 __pycache__/
 *.py[cod]
-*$py.class
 *.egg-info/
 .eggs/
 build/
@@ -26,11 +25,10 @@ htmlcov/
 .tox/
 .ruff_cache/
 
-# 日志与数据
-*.log
-logs/
-data/*.db
-data/*.sqlite*
+# 运行时数据
+data/
+*.db
+*.sqlite*
 
 # IDE
 .idea/
